@@ -1,0 +1,57 @@
+ID: odataapp
+_schema-version: "3.1"
+version: 0.0.1
+
+parameters:
+  enable-parallel-deployments: true
+
+modules:
+
+  - name: odataapp-srv
+    type: nodejs
+    path: srv
+    build-parameters:
+      ignore:
+        - default-*.json
+        - .env
+        - "*node_modules*"
+    parameters:
+      disk-quota: 512M
+      memory: 256M
+    provides:
+      - name: srv_api
+        properties:
+          url: ${default-url}
+    requires:
+      - name: odataapp-uaa
+      - name: odataapp-dest
+      - name: odataapp-conn
+
+resources:
+  - name: odataapp-uaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      path: ./xs-security.json
+      service-plan: application
+      service: xsuaa
+  - name: odataapp-dest
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        init_data:
+          instance:
+            existing_destinations_policy: ignore
+            destinations:
+              - Name: odataapp-nw
+                Description: Northwind
+                URL: https://services.odata.org/v2/Northwind/Northwind.svc
+                Type: HTTP
+                ProxyType: Internet
+                Authentication: NoAuthentication
+  - name: odataapp-conn
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
